@@ -1,7 +1,14 @@
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
-import { authPort, dbName, dbPort, resolveRealmHost, worldPort } from './utils'
+import {
+  authPort,
+  dbName,
+  dbPort,
+  resolveRealmHost,
+  validateRealmAddress,
+  worldPort,
+} from './utils'
 import { isPlayerbots, roleImage } from './variant'
 
 const dbGracePeriod = 30_000
@@ -37,10 +44,12 @@ const mysqlExec = (pw: string, sql: string) => ({
     '-P',
     dbPort.toString(),
     '-uroot',
-    `-p${pw}`,
     '-e',
     sql,
   ] as [string, ...string[]],
+  // Pass the root password via env, not argv, so it never appears in the
+  // process list.
+  env: { MYSQL_PWD: pw },
 })
 
 export const main = sdk.setupMain(async ({ effects }) => {
@@ -49,7 +58,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const store = await storeJson.read().const(effects)
   if (!store) throw new Error('no store.json')
 
-  const host = await resolveRealmHost(effects, store.realmAddress)
+  const host = validateRealmAddress(
+    await resolveRealmHost(effects, store.realmAddress),
+  )
   console.log(`Realm address resolved to ${host}`)
 
   const dbEnv = { MYSQL_ROOT_PASSWORD: store.dbPassword }
@@ -67,7 +78,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const realmSql =
     `UPDATE ${dbName.auth}.realmlist ` +
     `SET address='${host}', localAddress='${host}', ` +
-    `port=${worldPort}, name='${store.realmName.replace(/'/g, '')}' ` +
+    `port=${worldPort}, name='${store.realmName.replace(/'/g, "''")}' ` +
     `WHERE id=1;`
 
   // Shared subcontainer factories
@@ -152,86 +163,87 @@ export const main = sdk.setupMain(async ({ effects }) => {
       env: {
         ...serverEnv,
         ACORE_COMPONENT: binary,
-        // db-import populates all three core DBs: EnableDatabases is a bitmask
-        // (1=auth, 2=characters, 4=world → 7=all). The long-running servers
-        // must not migrate (0). (Overrides the image ENV.)
+        // db-import populates every core DB: EnableDatabases is a bitmask
+        // (1=auth, 2=characters, 4=world, 8=playerbots in the fork; 15=all).
+        // The long-running servers must not migrate (0). Overrides the image ENV.
         ...(binary === 'dbimport'
-          ? { AC_FORCE_CREATE_DB: '1', AC_UPDATES_ENABLE_DATABASES: '7' }
+          ? { AC_FORCE_CREATE_DB: '1', AC_UPDATES_ENABLE_DATABASES: '15' }
           : { AC_UPDATES_ENABLE_DATABASES: '0' }),
       },
     })
 
-    return sdk.Daemons.of(effects)
-      .addDaemon('database', {
-        subcontainer: await dbSub(),
-        exec: { command: sdk.useEntrypoint(), env: dbEnv },
-        ready: dbReady,
-        requires: [],
-      })
-      .addOneshot('client-data', {
-        subcontainer: await clientDataSub(),
-        exec: { command: CLIENT_DATA_CMD },
-        requires: [],
-      })
-      // Create all databases up front (the fork's auto-create only makes the
-      // first one). db-import then populates auth/world/characters; the world
-      // server populates playerbots from the baked-in module SQL.
-      .addOneshot('create-dbs', {
-        subcontainer: await sdk.SubContainer.of(
-          effects,
-          { imageId: roleImage.database },
-          null,
-          'create-dbs-sub',
-        ),
-        exec: mysqlExec(
-          store.dbPassword,
-          Object.values(dbName)
-            .map(
-              (db) =>
-                `CREATE DATABASE IF NOT EXISTS ${db} ` +
-                `DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
-            )
-            .join(' '),
-        ),
-        requires: ['database'],
-      })
-      .addOneshot('db-import', {
-        subcontainer: await sdk.SubContainer.of(
-          effects,
-          { imageId: roleImage.dbImport },
-          null,
-          'db-import-sub',
-        ),
-        exec: exec('dbimport'),
-        requires: ['database', 'create-dbs'],
-      })
-      .addOneshot('realm-config', {
-        subcontainer: await sdk.SubContainer.of(
-          effects,
-          { imageId: roleImage.database },
-          null,
-          'realm-config-sub',
-        ),
-        exec: mysqlExec(store.dbPassword, realmSql),
-        requires: ['db-import'],
-      })
-      .addDaemon('authserver', {
-        subcontainer: await sdk.SubContainer.of(
-          effects,
-          { imageId: roleImage.auth },
-          null,
-          'authserver-sub',
-        ),
-        exec: exec('authserver'),
-        ready: authReady,
-        requires: ['realm-config'],
-      })
-      .addDaemon('worldserver', {
-        subcontainer: await worldSub(),
-        exec: exec('worldserver'),
-        ready: worldReady,
-        requires: ['db-import', 'client-data', 'create-dbs'],
-      })
+    return (
+      sdk.Daemons.of(effects)
+        .addDaemon('database', {
+          subcontainer: await dbSub(),
+          exec: { command: sdk.useEntrypoint(), env: dbEnv },
+          ready: dbReady,
+          requires: [],
+        })
+        .addOneshot('client-data', {
+          subcontainer: await clientDataSub(),
+          exec: { command: CLIENT_DATA_CMD },
+          requires: [],
+        })
+        // Create all databases up front (the fork's auto-create only makes the
+        // first one). db-import then populates auth/world/characters/playerbots.
+        .addOneshot('create-dbs', {
+          subcontainer: await sdk.SubContainer.of(
+            effects,
+            { imageId: roleImage.database },
+            null,
+            'create-dbs-sub',
+          ),
+          exec: mysqlExec(
+            store.dbPassword,
+            Object.values(dbName)
+              .map(
+                (db) =>
+                  `CREATE DATABASE IF NOT EXISTS ${db} ` +
+                  `DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
+              )
+              .join(' '),
+          ),
+          requires: ['database'],
+        })
+        .addOneshot('db-import', {
+          subcontainer: await sdk.SubContainer.of(
+            effects,
+            { imageId: roleImage.dbImport },
+            null,
+            'db-import-sub',
+          ),
+          exec: exec('dbimport'),
+          requires: ['database', 'create-dbs'],
+        })
+        .addOneshot('realm-config', {
+          subcontainer: await sdk.SubContainer.of(
+            effects,
+            { imageId: roleImage.database },
+            null,
+            'realm-config-sub',
+          ),
+          exec: mysqlExec(store.dbPassword, realmSql),
+          requires: ['db-import'],
+        })
+        .addDaemon('authserver', {
+          subcontainer: await sdk.SubContainer.of(
+            effects,
+            { imageId: roleImage.auth },
+            null,
+            'authserver-sub',
+          ),
+          exec: exec('authserver'),
+          ready: authReady,
+          requires: ['realm-config'],
+        })
+        .addDaemon('worldserver', {
+          subcontainer: await worldSub(),
+          exec: exec('worldserver'),
+          ready: worldReady,
+          requires: ['db-import', 'client-data', 'create-dbs'],
+        })
+    )
   }
 
   // ──────────────────────────── Vanilla ─────────────────────────────

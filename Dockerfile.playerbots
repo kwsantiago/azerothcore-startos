@@ -1,7 +1,7 @@
 # Builds the mod-playerbots fork of AzerothCore from source into a single
 # consolidated image containing all server binaries (worldserver, authserver,
 # dbimport) plus the playerbots module SQL. StartOS dockerBuild has no
-# multi-stage target selection, so one image serves every role — the manifest
+# multi-stage target selection, so one image serves every role, the manifest
 # picks which binary to run per daemon/oneshot via the exec command.
 #
 # This is intentionally self-contained (clones its own source) so it builds
@@ -10,7 +10,7 @@
 ARG UBUNTU_VERSION=22.04
 
 ############################
-# Build stage — compile AC #
+# Build stage, compile AC #
 ############################
 FROM ubuntu:${UBUNTU_VERSION} AS build
 
@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone the fork (shallow — the build tolerates a missing precise git rev) and
+# Clone the fork (shallow, the build tolerates a missing precise git rev) and
 # the playerbots module.
 RUN git clone --depth=1 --branch "${ACORE_BRANCH}" --single-branch \
         "${ACORE_REPO}" /azerothcore \
@@ -48,18 +48,18 @@ RUN cmake /azerothcore \
         -DTOOLS_BUILD=db-only \
         -DSCRIPTS=static \
         -DMODULES=static \
+        -DBoost_USE_STATIC_LIBS=ON \
         -DWITH_WARNINGS=OFF \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_CXX_COMPILER=clang++ \
         -DCMAKE_C_COMPILER=clang \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-        -DBoost_USE_STATIC_LIBS=ON \
     && cmake --build . --config RelWithDebInfo -j "$(nproc)" \
     && cmake --install . --config RelWithDebInfo
 
 ##############################
-# Runtime — all roles in one #
+# Runtime, all roles in one #
 ##############################
 FROM ubuntu:${UBUNTU_VERSION} AS runtime
 

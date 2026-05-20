@@ -63,7 +63,8 @@ const dict = {
   'Saving restarts the server.': 98,
   'Playerbots Settings Updated': 99,
   'Bots enabled. The server is restarting.': 100,
-  'Bots disabled — vanilla mode. The server is restarting.': 101,
+  'Bots disabled, vanilla mode. The server is restarting.': 101,
+  'Minimum was higher than maximum, so the values were swapped.': 102,
 } as const
 
 export type LangDict = Record<keyof typeof dict, string>

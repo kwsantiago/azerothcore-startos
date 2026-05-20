@@ -42,7 +42,7 @@ const playerbotsImages = {
     source: { dockerBuild: { dockerfile: './Dockerfile.playerbots' } },
     arch: ARCH_X86,
   },
-  // The client-data downloader is version-agnostic — reuse the official one.
+  // The client-data downloader is version-agnostic, reuse the official one.
   'client-data': {
     source: { dockerTag: `acore/ac-wotlk-client-data:${ACORE_TAG}` },
     arch: ARCH_BOTH,

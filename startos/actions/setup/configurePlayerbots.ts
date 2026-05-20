@@ -1,6 +1,7 @@
 import { sdk } from '../../sdk'
 import { i18n } from '../../i18n'
 import { storeJson } from '../../fileModels/store.json'
+import { PLAYERBOTS_DEFAULTS } from '../../utils'
 
 const { InputSpec, Value } = sdk
 
@@ -47,27 +48,25 @@ export const configurePlayerbots = sdk.Action.withInput(
     visibility: 'enabled',
   }),
   inputSpec,
-  async ({ effects }) => {
-    const pb = (await storeJson.read((s) => s.playerbots).once()) ?? {
-      enabled: true,
-      minBots: 20,
-      maxBots: 40,
-    }
-    return { enabled: pb.enabled, minBots: pb.minBots, maxBots: pb.maxBots }
-  },
+  async ({ effects }) =>
+    (await storeJson.read((s) => s.playerbots).once()) ?? PLAYERBOTS_DEFAULTS,
   async ({ effects, input }) => {
     const minBots = Math.min(input.minBots, input.maxBots)
     const maxBots = Math.max(input.minBots, input.maxBots)
+    const swapped = minBots !== input.minBots || maxBots !== input.maxBots
     await storeJson.merge(effects, {
       playerbots: { enabled: input.enabled, minBots, maxBots },
     })
     await effects.restart()
+    const base = input.enabled
+      ? i18n('Bots enabled. The server is restarting.')
+      : i18n('Bots disabled, vanilla mode. The server is restarting.')
     return {
       version: '1' as const,
       title: i18n('Playerbots Settings Updated'),
-      message: input.enabled
-        ? i18n('Bots enabled. The server is restarting.')
-        : i18n('Bots disabled — vanilla mode. The server is restarting.'),
+      message: swapped
+        ? `${base} ${i18n('Minimum was higher than maximum, so the values were swapped.')}`
+        : base,
       result: null,
     }
   },

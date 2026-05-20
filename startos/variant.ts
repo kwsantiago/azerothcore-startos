@@ -5,7 +5,7 @@ export const isPlayerbots = BUILD_VARIANT === 'playerbots'
 
 export const packageId = isPlayerbots ? 'azerothcore-playerbots' : 'azerothcore'
 export const packageTitle = isPlayerbots
-  ? 'AzerothCore — Playerbots'
+  ? 'AzerothCore Playerbots'
   : 'AzerothCore'
 
 // Which manifest image id backs each server role.
