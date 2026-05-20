@@ -16,7 +16,7 @@ const inputSpec = InputSpec.of({
     name: i18n('Minimum Random Bots'),
     description: i18n('Lower bound of the random bot population.'),
     required: true,
-    default: 50,
+    default: 20,
     integer: true,
     min: 0,
     max: 1000,
@@ -27,7 +27,7 @@ const inputSpec = InputSpec.of({
       'Upper bound of the random bot population. More bots = more RAM (~10-20MB each).',
     ),
     required: true,
-    default: 100,
+    default: 40,
     integer: true,
     min: 0,
     max: 1000,
@@ -50,8 +50,8 @@ export const configurePlayerbots = sdk.Action.withInput(
   async ({ effects }) => {
     const pb = (await storeJson.read((s) => s.playerbots).once()) ?? {
       enabled: true,
-      minBots: 50,
-      maxBots: 100,
+      minBots: 20,
+      maxBots: 40,
     }
     return { enabled: pb.enabled, minBots: pb.minBots, maxBots: pb.maxBots }
   },

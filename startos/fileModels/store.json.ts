@@ -21,10 +21,10 @@ const storeConfigSchema = z.object({
   playerbots: z
     .object({
       enabled: z.boolean().catch(true),
-      minBots: z.number().int().catch(50),
-      maxBots: z.number().int().catch(100),
+      minBots: z.number().int().catch(20),
+      maxBots: z.number().int().catch(40),
     })
-    .catch({ enabled: true, minBots: 50, maxBots: 100 }),
+    .catch({ enabled: true, minBots: 20, maxBots: 40 }),
 })
 
 export type StoreConfig = z.infer<typeof storeConfigSchema>

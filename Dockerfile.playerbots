@@ -97,6 +97,7 @@ RUN printf '%s\n' \
     'comp="${ACORE_COMPONENT:-worldserver}"' \
     'dist="$CONF_DIR/$comp.conf.dist"; conf="$CONF_DIR/$comp.conf"' \
     '[ -f "$dist" ] && cp -n "$dist" "$conf" || true' \
+    'for d in "$CONF_DIR"/modules/*.conf.dist; do [ -f "$d" ] && cp -n "$d" "${d%.dist}" || true; done' \
     'echo "Starting $comp..."' \
     'exec "$@"' \
     > /azerothcore/entrypoint.sh \
