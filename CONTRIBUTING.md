@@ -5,10 +5,11 @@ This repo packages [AzerothCore](https://github.com/azerothcore/azerothcore-wotl
 codebase**, selected at build time by the `VARIANT` env var:
 
 - **vanilla** (`azerothcore`) — references the official `acore/ac-wotlk-*`
-  images; x86_64 + aarch64.
+  images (pinned to digests); x86_64.
 - **playerbots** (`azerothcore-playerbots`) — compiles the
   [mod-playerbots](https://github.com/mod-playerbots/azerothcore-wotlk) fork from
-  source via `Dockerfile.playerbots` into one consolidated image; x86_64 only.
+  source (pinned commits) via `Dockerfile.playerbots` into one consolidated
+  image; x86_64.
 
 The active variant is baked into the bundle by `scripts/gen-variant.js` (writes
 the gitignored `startos/variant.gen.ts` and `instructions.md`). Runtime branches
@@ -41,11 +42,10 @@ the [start-os releases](https://github.com/Start9Labs/start-os/releases)
 ```bash
 npm ci              # install dependencies
 
-# Vanilla (azerothcore): x86_64 + aarch64
-make                # both arches  (or: make x86_64 / make aarch64)
+make                # vanilla (azerothcore_x86_64.s9pk)
 
-# Playerbots (azerothcore-playerbots): x86_64, compiles the fork (slow first time;
-# Docker layer-caches the compile, so later repacks are quick)
+# Playerbots (azerothcore-playerbots): compiles the fork at pinned commits (slow
+# first time; Docker layer-caches the compile, so later repacks are quick)
 make playerbots
 ```
 
@@ -61,19 +61,23 @@ CI is key-free (it only type-checks and bundles — see `.github/workflows/check
 signed `.s9pk` builds are done locally. To cut a release with both packages:
 
 ```bash
-make            # azerothcore_x86_64.s9pk + azerothcore_aarch64.s9pk
+make            # azerothcore_x86_64.s9pk
 make playerbots # azerothcore_playerbots_x86_64.s9pk
 gh release create vX.Y.Z azerothcore_*.s9pk --title "vX.Y.Z" --notes "..."
 ```
 
 ## Updating the upstream version
 
-1. Pick a published `acore/ac-wotlk-*` tag (see <https://hub.docker.com/u/acore>)
-   and update `ACORE_TAG` in `startos/manifest/index.ts`. All five images share
-   the same tag.
-2. Bump `version` and `releaseNotes` in the file under `startos/versions/`.
-3. Rebuild (`make`), sideload, and confirm it starts and a client can connect.
-4. Review `README.md` and `instructions.md` for anything the bump changed.
+1. Pick a published `acore/ac-wotlk-*` tag (see <https://hub.docker.com/u/acore>),
+   resolve each image's digest with `docker buildx imagetools inspect <ref>`, and
+   update the pinned digest constants in `startos/manifest/index.ts`.
+2. For playerbots, update `ACORE_COMMIT` / `PLAYERBOTS_COMMIT` in
+   `Dockerfile.playerbots` to the commits you want (e.g. the `Playerbot` branch
+   HEAD: `git ls-remote <repo> Playerbot`).
+3. Bump `version` and `releaseNotes` in the file under `startos/versions/`.
+4. Rebuild (`make` / `make playerbots`), sideload, and confirm it starts and a
+   client can connect.
+5. Review `README.md` and the `instructions.*.md` templates for anything changed.
 
 ## Architecture notes
 

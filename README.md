@@ -25,7 +25,7 @@ by `VARIANT`):
 
 | Package | id | Core | Arch | Notes |
 | --- | --- | --- | --- | --- |
-| **AzerothCore** (vanilla) | `azerothcore` | Stock AzerothCore (official prebuilt images) | x86_64, aarch64 | Lightweight; empty world unless friends join |
+| **AzerothCore** (vanilla) | `azerothcore` | Stock AzerothCore (official prebuilt images) | x86_64 | Lightweight; empty world unless friends join |
 | **AzerothCore — Playerbots** | `azerothcore-playerbots` | [mod-playerbots](https://github.com/mod-playerbots/azerothcore-wotlk) fork, compiled from source | x86_64 | World populated with AI players; bots toggleable |
 
 They install as distinct packages. The Playerbots edition adds a **Playerbots
@@ -33,7 +33,7 @@ Settings** action (enable/disable bots, tune population); turning bots off makes
 it behave like vanilla. **Don't run both at once** on the same server — they
 share ports 3724/8085.
 
-Build: `make` (vanilla, x86+arm) or `make playerbots` (playerbots, x86). See
+Build: `make` (vanilla) or `make playerbots`. Both editions are x86_64 only. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
@@ -73,7 +73,7 @@ time (`Dockerfile.playerbots`); `database` and `client-data` are unchanged.
 
 | Property | Value |
 | --- | --- |
-| Architectures | vanilla: x86_64 + aarch64; playerbots: x86_64 |
+| Architectures | x86_64 (both editions) |
 | Entry command | Upstream entrypoint (`sdk.useEntrypoint()`) for the daemons |
 
 ---

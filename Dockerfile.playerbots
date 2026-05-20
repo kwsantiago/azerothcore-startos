@@ -17,10 +17,13 @@ FROM ubuntu:${UBUNTU_VERSION} AS build
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TZ=Etc/UTC
 
-# mod-playerbots requires the custom AzerothCore fork (Playerbot branch).
+# mod-playerbots requires the custom AzerothCore fork (Playerbot branch). Pin to
+# exact commits for reproducible builds (these were the branch HEADs at pin time:
+# fork Playerbot + module default branch). Update the SHAs to bump.
 ARG ACORE_REPO=https://github.com/mod-playerbots/azerothcore-wotlk.git
-ARG ACORE_BRANCH=Playerbot
+ARG ACORE_COMMIT=d6f96d206b0e835fe692ebf4206e8db8a52d4d38
 ARG PLAYERBOTS_REPO=https://github.com/mod-playerbots/mod-playerbots.git
+ARG PLAYERBOTS_COMMIT=6bbead70c5d8e4899b398a252c548e89d298513e
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential ccache libtool cmake-data make cmake clang \
@@ -30,11 +33,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime && echo "$TZ" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone the fork (shallow, the build tolerates a missing precise git rev) and
-# the playerbots module.
-RUN git clone --depth=1 --branch "${ACORE_BRANCH}" --single-branch \
-        "${ACORE_REPO}" /azerothcore \
-    && git clone --depth=1 "${PLAYERBOTS_REPO}" /azerothcore/modules/mod-playerbots \
+# Fetch the exact pinned commits (shallow). GitHub allows fetching a specific
+# SHA, so the build always compiles the same source.
+RUN git init /azerothcore \
+    && git -C /azerothcore remote add origin "${ACORE_REPO}" \
+    && git -C /azerothcore fetch --depth=1 origin "${ACORE_COMMIT}" \
+    && git -C /azerothcore checkout --detach FETCH_HEAD \
+    && git init /azerothcore/modules/mod-playerbots \
+    && git -C /azerothcore/modules/mod-playerbots remote add origin "${PLAYERBOTS_REPO}" \
+    && git -C /azerothcore/modules/mod-playerbots fetch --depth=1 origin "${PLAYERBOTS_COMMIT}" \
+    && git -C /azerothcore/modules/mod-playerbots checkout --detach FETCH_HEAD \
     && git config --global --add safe.directory /azerothcore
 
 WORKDIR /azerothcore/build

@@ -8,15 +8,15 @@
 # scripts/gen-variant.js. s9pk.mk derives its PACKAGE_ID (used only for the
 # output filename) by awk-parsing a literal `id:` — which our dynamic manifest
 # lacks — so each leaf rule passes PACKAGE_ID explicitly as a command-line
-# override. Vanilla is x86+arm (official images); playerbots is x86 (compiled).
-TARGETS := vanilla-x86 vanilla-arm
-ARCHES := x86 arm
+# override. Both editions are x86_64 only.
+TARGETS := vanilla-x86
+ARCHES := x86
 
 include s9pk.mk
 
 .PHONY += vanilla playerbots
 
-vanilla: vanilla-x86 vanilla-arm
+vanilla: vanilla-x86
 playerbots: playerbots-x86
 
 # Vanilla: no VARIANT (BASE_NAME stays "azerothcore").
