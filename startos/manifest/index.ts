@@ -1,5 +1,10 @@
 import { setupManifest } from '@start9labs/start-sdk'
-import { longDescription, shortDescription } from './i18n'
+import {
+  longDescription,
+  longDescriptionPlayerbots,
+  shortDescription,
+  shortDescriptionPlayerbots,
+} from './i18n'
 import { isPlayerbots, packageId, packageTitle } from '../variant'
 
 // Vanilla references AzerothCore's official prebuilt images (acore/ac-wotlk-*).
@@ -55,8 +60,8 @@ export const manifest = setupManifest({
   marketingUrl: 'https://www.azerothcore.org/',
   donationUrl: 'https://www.azerothcore.org/#donate',
   description: {
-    short: shortDescription,
-    long: longDescription,
+    short: isPlayerbots ? shortDescriptionPlayerbots : shortDescription,
+    long: isPlayerbots ? longDescriptionPlayerbots : longDescription,
   },
   volumes: ['main'],
   // Cast to the intersection so the manifest's image-id type spans every id

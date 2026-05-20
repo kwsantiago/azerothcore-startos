@@ -1,10 +1,10 @@
 import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 
 export const v_1_0_0 = VersionInfo.of({
-  version: '1.0.0:1',
+  version: '1.0.0:2',
   releaseNotes: {
     en_US:
-      'Account creation via direct DB + SRP6 (no SOAP); disable noisy AC console; realm address picker.',
+      'Add Playerbots edition (azerothcore-playerbots): the mod-playerbots fork compiled from source, with AI players on by default and a Playerbots Settings action to disable or tune them. Vanilla edition unchanged.',
   },
   migrations: {
     up: async ({ effects }) => {},
