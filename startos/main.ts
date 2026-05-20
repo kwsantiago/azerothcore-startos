@@ -140,10 +140,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
     const serverEnv = {
       ...baseEnv,
       AC_PLAYERBOTS_DATABASE_INFO: conn(dbName.playerbots),
-      AC_AIPLAYERBOT_ENABLED: botsOn ? '1' : '0',
-      AC_AIPLAYERBOT_RANDOMBOTAUTOLOGIN: botsOn ? '1' : '0',
-      AC_AIPLAYERBOT_MINRANDOMBOTS: String(store.playerbots.minBots),
-      AC_AIPLAYERBOT_MAXRANDOMBOTS: String(store.playerbots.maxBots),
+      // AzerothCore env names split camelCase with underscores:
+      // AiPlayerbot.Enabled -> AC_AI_PLAYERBOT_ENABLED, etc.
+      AC_AI_PLAYERBOT_ENABLED: botsOn ? '1' : '0',
+      AC_AI_PLAYERBOT_RANDOM_BOT_AUTOLOGIN: botsOn ? '1' : '0',
+      AC_AI_PLAYERBOT_MIN_RANDOM_BOTS: String(store.playerbots.minBots),
+      AC_AI_PLAYERBOT_MAX_RANDOM_BOTS: String(store.playerbots.maxBots),
     }
     const exec = (binary: string) => ({
       command: acoreCmd(binary),
