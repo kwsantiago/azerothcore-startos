@@ -170,6 +170,28 @@ export const main = sdk.setupMain(async ({ effects }) => {
         exec: { command: CLIENT_DATA_CMD },
         requires: [],
       })
+      // Create all databases up front (the fork's auto-create only makes the
+      // first one). db-import then populates auth/world/characters; the world
+      // server populates playerbots from the baked-in module SQL.
+      .addOneshot('create-dbs', {
+        subcontainer: await sdk.SubContainer.of(
+          effects,
+          { imageId: roleImage.database },
+          null,
+          'create-dbs-sub',
+        ),
+        exec: mysqlExec(
+          store.dbPassword,
+          Object.values(dbName)
+            .map(
+              (db) =>
+                `CREATE DATABASE IF NOT EXISTS ${db} ` +
+                `DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
+            )
+            .join(' '),
+        ),
+        requires: ['database'],
+      })
       .addOneshot('db-import', {
         subcontainer: await sdk.SubContainer.of(
           effects,
@@ -178,21 +200,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           'db-import-sub',
         ),
         exec: exec('dbimport'),
-        requires: ['database'],
-      })
-      .addOneshot('playerbots-db', {
-        subcontainer: await sdk.SubContainer.of(
-          effects,
-          { imageId: roleImage.database },
-          null,
-          'playerbots-db-sub',
-        ),
-        exec: mysqlExec(
-          store.dbPassword,
-          `CREATE DATABASE IF NOT EXISTS ${dbName.playerbots} ` +
-            `DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`,
-        ),
-        requires: ['database'],
+        requires: ['database', 'create-dbs'],
       })
       .addOneshot('realm-config', {
         subcontainer: await sdk.SubContainer.of(
@@ -219,7 +227,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         subcontainer: await worldSub(),
         exec: exec('worldserver'),
         ready: worldReady,
-        requires: ['db-import', 'client-data', 'playerbots-db'],
+        requires: ['db-import', 'client-data', 'create-dbs'],
       })
   }
 
