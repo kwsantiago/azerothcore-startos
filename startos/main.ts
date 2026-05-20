@@ -150,10 +150,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
       env: {
         ...serverEnv,
         ACORE_COMPONENT: binary,
-        // db-import must create the databases and run the SQL updates; the
-        // long-running servers must not migrate. (Overrides the image ENV.)
+        // db-import populates all three core DBs: EnableDatabases is a bitmask
+        // (1=auth, 2=characters, 4=world → 7=all). The long-running servers
+        // must not migrate (0). (Overrides the image ENV.)
         ...(binary === 'dbimport'
-          ? { AC_FORCE_CREATE_DB: '1', AC_UPDATES_ENABLE_DATABASES: '1' }
+          ? { AC_FORCE_CREATE_DB: '1', AC_UPDATES_ENABLE_DATABASES: '7' }
           : { AC_UPDATES_ENABLE_DATABASES: '0' }),
       },
     })
