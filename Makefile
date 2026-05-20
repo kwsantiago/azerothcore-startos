@@ -1,12 +1,14 @@
 # overrides to s9pk.mk must precede the include statement
 #
 # Two variants from one repo (see startos/variant.ts):
-#   make               → vanilla   (azerothcore.s9pk, official acore images)
-#   make playerbots    → playerbots (azerothcore-playerbots.s9pk, fork built
-#                                     from Dockerfile.playerbots)
+#   make            → vanilla    → azerothcore_<arch>.s9pk          (id: azerothcore)
+#   make playerbots → playerbots → azerothcore_playerbots_<arch>.s9pk (id: azerothcore-playerbots)
 #
-# Default `make` builds only vanilla (fast — official images). Playerbots is an
-# explicit `make playerbots` opt-in (slow — compiles the fork from source, x86).
+# The real package id is baked into the bundle at build time by
+# scripts/gen-variant.js. s9pk.mk derives its PACKAGE_ID (used only for the
+# output filename) by awk-parsing a literal `id:` — which our dynamic manifest
+# lacks — so each leaf rule passes PACKAGE_ID explicitly as a command-line
+# override. Vanilla is x86+arm (official images); playerbots is x86 (compiled).
 TARGETS := vanilla-x86 vanilla-arm
 ARCHES := x86 arm
 
@@ -14,11 +16,11 @@ include s9pk.mk
 
 .PHONY += vanilla playerbots
 
-# Aggregate variant targets.
 vanilla: vanilla-x86 vanilla-arm
 playerbots: playerbots-x86
 
-# Variant leaf rules: <variant>-<arch> sets VARIANT and recurses into the
-# s9pk.mk arch recipe.
-vanilla-%:;    VARIANT=vanilla    $(MAKE) $*
-playerbots-%:; VARIANT=playerbots $(MAKE) $*
+# Vanilla: no VARIANT (BASE_NAME stays "azerothcore").
+vanilla-%:;    $(MAKE) PACKAGE_ID=azerothcore $*
+# Playerbots: VARIANT=playerbots → BASE_NAME "azerothcore_playerbots", and the
+# bundle bakes id "azerothcore-playerbots".
+playerbots-%:; VARIANT=playerbots $(MAKE) PACKAGE_ID=azerothcore $*
