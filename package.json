@@ -1,9 +1,10 @@
 {
   "name": "azerothcore-startos",
   "scripts": {
-    "build": "rm -rf ./javascript && ncc build startos/index.ts -o ./javascript",
+    "gen": "node scripts/gen-variant.js",
+    "build": "npm run gen && rm -rf ./javascript && ncc build startos/index.ts -o ./javascript",
     "prettier": "prettier --write startos",
-    "check": "tsc --noEmit"
+    "check": "npm run gen && tsc --noEmit"
   },
   "dependencies": {
     "@start9labs/start-sdk": "1.5.2",

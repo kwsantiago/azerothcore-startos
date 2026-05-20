@@ -19,6 +19,7 @@ export const dbName = {
   auth: 'acore_auth',
   world: 'acore_world',
   characters: 'acore_characters',
+  playerbots: 'acore_playerbots',
 } as const
 
 import { T } from '@start9labs/start-sdk'

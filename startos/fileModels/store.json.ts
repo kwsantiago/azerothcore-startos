@@ -16,6 +16,15 @@ const storeConfigSchema = z.object({
   // world server). Empty = auto-resolve a non-local IPv4. Set via the
   // "Set Realm Address" action when a box has multiple networks.
   realmAddress: z.string().catch(''),
+  // Playerbots settings (playerbots variant only). Enabled by default — turning
+  // it off makes the server behave like vanilla. Ignored by the vanilla build.
+  playerbots: z
+    .object({
+      enabled: z.boolean().catch(true),
+      minBots: z.number().int().catch(50),
+      maxBots: z.number().int().catch(100),
+    })
+    .catch({ enabled: true, minBots: 50, maxBots: 100 }),
 })
 
 export type StoreConfig = z.infer<typeof storeConfigSchema>

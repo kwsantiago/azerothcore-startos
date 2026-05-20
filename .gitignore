@@ -7,3 +7,4 @@ docker-images
 javascript
 ncc-cache
 .claude/
+startos/variant.gen.ts
