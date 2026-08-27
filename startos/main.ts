@@ -14,11 +14,17 @@ import {
 const dbGracePeriod = 30_000
 const worldGracePeriod = 120_000 // first boot loads maps + DB, can be slow
 
-// Client-data download, idempotent: skips if maps already present.
+// Client-data download. `inst_download_client_data` is itself idempotent and
+// version-aware: it compares its pinned data version against INSTALLED_VERSION
+// in `data/data-version` (which lives in the `main` volume) and returns early
+// when they match. Don't guard this on the data directory merely existing --
+// upstream bumps the data version when the map format changes (v19 -> v20 for
+// MMAP_VERSION 20), and a presence check would leave an upgraded install
+// running the new worldserver against stale mmaps it rejects.
 const CLIENT_DATA_CMD: [string, ...string[]] = [
   'bash',
   '-c',
-  '[ -d /azerothcore/env/dist/data/dbc ] && echo "client data present, skipping" || (source /azerothcore/apps/installer/includes/functions.sh && inst_download_client_data)',
+  'source /azerothcore/apps/installer/includes/functions.sh && inst_download_client_data',
 ]
 
 // Run an AC binary through the consolidated fork image entrypoint.
