@@ -173,7 +173,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
           }),
           'client-data-sub',
         ),
-        exec: { command: CLIENT_DATA_CMD },
+        // Run as root: the `main` volume mountpoint is root-owned, and the
+        // client-data image began declaring `USER acore` (uid 1000) in
+        // 17.0.0-dev, which cannot write the zip or extract into it. The
+        // 16.0.0-dev image ran as root implicitly, so this preserves the
+        // behavior the download has always relied on.
+        exec: { command: CLIENT_DATA_CMD, user: 'root' },
         requires: [],
       })
       // Create all databases up front (the fork's auto-create only makes the
